@@ -3,6 +3,8 @@ const express = require('express');
 const multer = require("multer");
 const app = express();
 const fs = require('fs');
+const os = require('os');
+const path = require("path");
 
 var bodyParser = require('body-parser');
 var jsonParser = bodyParser.json();
@@ -14,7 +16,8 @@ var urlencodedParser2 = bodyParser.urlencoded({ extended: true })
 //     (function () { })();
 // });
 
-const SAVED_PATH = __dirname + '/audios';
+const SAVED_PATH = os.homedir() + path.sep+ 'VinorSoft_Stt';
+
 
 //Setting storage engine
 const storageEngine = multer.diskStorage({
@@ -48,7 +51,7 @@ const storageEngine = multer.diskStorage({
 });
 
 
-const path = require("path");
+
 const checkFileType = function (file, cb) {
     //Allowed file extensions
     const fileTypes = /audio\/*/;
@@ -163,7 +166,6 @@ app.post('/body3', urlencodedParser2, function (req, res) {
 //     });
 // });
 
-const os = require('os');
 const busboy = require('busboy');
 const { randomFillSync } = require('crypto');
 const random = (() => {
@@ -189,12 +191,14 @@ app.post('/resume', function (req, res) {
             return;
         }
         var dir1 = SAVED_PATH + '/' + x1.username + '/' + x1.date + '/' + info.filename;
+        console.log({dir1});
         var w1= fs.createWriteStream(dir1, {
             start: startX,
             flags: startX==0 ? 'w': 'a'
         })
         file.pipe(w1);
         w1.once('error', function(err){
+            console.log('w1:', err);
             file.destroy();
             bb.destroy();
         });
@@ -290,11 +294,11 @@ function onError(error) {
     switch (error.code) {
         case 'EACCES':
             console.error(bind + ' requires elevated privileges');
-            process.exit(1);
+            process.exit(0);
             break;
         case 'EADDRINUSE':
             console.error(bind + ' is already in use');
-            process.exit(1);
+            process.exit(0);
             break;
         default:
             throw error;

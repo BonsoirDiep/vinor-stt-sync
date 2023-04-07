@@ -46,7 +46,7 @@ function resumeUpload(url, fileName, fieldname, cb, opt) {
     var request = require('request');
     var reqX = request.post(url, {
         headers: {
-            'username': userName + '?',
+            'username': userName + '',
             'start': startX,
             'date': encodeURI(dateForce)
         }
