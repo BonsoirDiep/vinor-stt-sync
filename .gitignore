@@ -1,0 +1,11 @@
+node_modules/
+package-lock.json
+*.log
+*.mp4
+*.wav
+*.wav2
+*.jpg
+*.docx
+*.doc
+/audios/
+abc.txt
