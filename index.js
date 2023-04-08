@@ -17,20 +17,21 @@ var urlencodedParser2 = bodyParser.urlencoded({ extended: true })
 // });
 
 const SAVED_PATH = os.homedir() + path.sep+ 'VinorSoft_Stt';
+const SAVED_PATH_MD5= os.homedir() + path.sep+ 'VinorSoft_Sys';
 
 
 //Setting storage engine
 const storageEngine = multer.diskStorage({
     destination: (req, file, cb) => {
         // console.log(req.body.username);
+        var dir1 = SAVED_PATH;
+        if(file.originalname.endsWith('.md5')) dir1= SAVED_PATH_MD5;
         try {
             if (!req.query.date || !req.body.username) return cb('Missing query \"date\" or body \"username\"');
-            var dir1 = SAVED_PATH;
+            
             if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
-
             dir1 += '/' + req.body.username;
             if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
-
             dir1 += '/' + req.query.date;
             if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
 
@@ -114,7 +115,7 @@ app.post('/md5', urlencodedParser, function (req, res, next) {
     if (!x1.md5 || !x1.path || !x1.user || !x1.date) return res.status(400).send("No valid md5 api !");
     var p1 = path.parse(req.body.path);
     var dir1 = SAVED_PATH + '/' + x1.user + '/' + x1.date + '/' + p1.base;
-    var dir2 = dir1 + '.md5';
+    var dir2 = SAVED_PATH_MD5 + '/' + x1.user + '/' + x1.date + '/' + p1.base + '.md5';
 
     fs.readFile(dir2, function (err, s1) {
         if (err) return res.status(400).send(err.message);
@@ -126,6 +127,10 @@ app.post('/md5', urlencodedParser, function (req, res, next) {
                 sizeFileBE = fs.statSync(dir1).size;
             } catch (_ex) {
                 sizeFileBE = 0;
+            }
+            if(sizeFileBE==0){
+                res.status(400).send("File in server is delete !");
+                return;
             }
             res.status(200).send({
                 size: sizeFileBE
@@ -173,10 +178,7 @@ const random = (() => {
     return () => randomFillSync(buf).toString('hex');
 })();
 app.post('/resume', function (req, res) {
-    // console.log(req.originalUrl);
     var x1= req.headers;
-    console.log(x1);
-    // x1['content-type'] = x1['content-type'] || 'application/octet-stream';
     const bb = busboy({ headers: x1 });
     bb.on('file', (name, file, info) => {
         // C:\Users\ADMIN\AppData\Local\Temp\busboy-upload-...
@@ -190,8 +192,13 @@ app.post('/resume', function (req, res) {
             bb.destroy();
             return;
         }
-        var dir1 = SAVED_PATH + '/' + x1.username + '/' + x1.date + '/' + info.filename;
-        console.log({dir1});
+        var dir1 = SAVED_PATH;
+        if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
+        dir1 += path.sep + x1.username;
+        if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
+        dir1 += path.sep + x1.date;
+        if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
+        dir1 += path.sep + info.filename;
         var w1= fs.createWriteStream(dir1, {
             start: startX,
             flags: startX==0 ? 'w': 'a'
@@ -218,31 +225,10 @@ app.post('/resume', function (req, res) {
     req.pipe(bb);
 });
 
-app.post("/single", upload.single("audio"), (req, res) => {
-    if (req.file) {
-        res.send("Single file uploaded successfully");
-    } else {
-        res.status(400).send("Please upload a valid audio");
-    }
-});
-
-app.post("/multiple", upload.array("audios", 5), (req, res) => {
-    if (req.files) {
-        res.send("Muliple files uploaded successfully");
-    } else {
-        res.status(400).send("Please upload a valid audios");
-    }
-});
-
-// console.log(require('fs').statSync('./abc.txt').size)
+// upload.single("audio")
+// upload.array("audios", 5)
 
 app.post("/single_all", uploadAll.single("upload"), (req, res) => {
-
-    console.log({
-        'req.file': req.file,
-        'req.body': JSON.stringify(req.body)
-    });
-
     if (req.file) {
         res.send("Single file uploaded successfully");
     } else {
@@ -251,12 +237,6 @@ app.post("/single_all", uploadAll.single("upload"), (req, res) => {
 });
 
 app.post("/multiple_all", uploadAll.array("uploads", 2), (req, res) => {
-
-    console.log({
-        'req.files': req.files,
-        'req.body': JSON.stringify(req.body)
-    });
-
     if (req.files) {
         res.send("Muliple files uploaded successfully");
     } else {
