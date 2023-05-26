@@ -16,8 +16,8 @@ var urlencodedParser2 = bodyParser.urlencoded({ extended: true })
 //     (function () { })();
 // });
 
-const SAVED_PATH = os.homedir() + path.sep+ 'VinorSoft_Stt';
-const SAVED_PATH_MD5= os.homedir() + path.sep+ 'VinorSoft_Sys';
+const SAVED_PATH = os.homedir() + path.sep + 'VinorSoft_Stt';
+const SAVED_PATH_MD5 = os.homedir() + path.sep + 'VinorSoft_Sys';
 
 
 //Setting storage engine
@@ -25,10 +25,10 @@ const storageEngine = multer.diskStorage({
     destination: (req, file, cb) => {
         // console.log(req.body.username);
         var dir1 = SAVED_PATH;
-        if(file.originalname.endsWith('.md5')) dir1= SAVED_PATH_MD5;
+        if (file.originalname.endsWith('.md5')) dir1 = SAVED_PATH_MD5;
         try {
             if (!req.query.date || !req.body.username) return cb('Missing query \"date\" or body \"username\"');
-            
+
             if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
             dir1 += '/' + req.body.username;
             if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
@@ -70,6 +70,11 @@ const checkFileType = function (file, cb) {
     }
 };
 
+var dirMyVoice = SAVED_PATH;
+if (!fs.existsSync(dirMyVoice)) fs.mkdirSync(dirMyVoice);
+dirMyVoice += '/Vinorsoft_888';
+if (!fs.existsSync(dirMyVoice)) fs.mkdirSync(dirMyVoice);
+
 //initializing multer
 const upload = multer({
     storage: storageEngine,
@@ -110,30 +115,23 @@ function md5File(path, cb) {
     input.pipe(md5Stream)
 }
 app.post('/md5', urlencodedParser, function (req, res, next) {
-
+    // 200 => FE check response + check size => upload done or resume upload
+    // 400 => new upload
+    // 403 => api missing
     var x1 = req.body;
-    if (!x1.md5 || !x1.path || !x1.user || !x1.date) return res.status(400).send("No valid md5 api !");
+    if (!x1.md5 || !x1.path || !x1.user || !x1.date) return res.status(403).send("No valid md5 api !");
     var p1 = path.parse(req.body.path);
     var dir1 = SAVED_PATH + '/' + x1.user + '/' + x1.date + '/' + p1.base;
     var dir2 = SAVED_PATH_MD5 + '/' + x1.user + '/' + x1.date + '/' + p1.base + '.md5';
-
     fs.readFile(dir2, function (err, s1) {
         if (err) return res.status(400).send(err.message);
-        // console.log(JSON.stringify(req.body));
-        var s2 = s1.toString();
+        var s2 = s1.toString().trim();
         if (s2 === x1.md5) {
-            var sizeFileBE;
-            try {
-                sizeFileBE = fs.statSync(dir1).size;
-            } catch (_ex) {
-                sizeFileBE = 0;
-            }
-            if(sizeFileBE==0){
-                res.status(400).send("File in server is delete !");
-                return;
-            }
-            res.status(200).send({
-                size: sizeFileBE
+            fs.stat(dir1, function (err1, infor1) {
+                if (err1) return res.status(400).send(err1.message);
+                res.status(200).send({
+                    size: infor1.size
+                });
             });
         } else {
             res.status(400).send("File in client change !");
@@ -178,16 +176,16 @@ const random = (() => {
     return () => randomFillSync(buf).toString('hex');
 })();
 app.post('/resume', function (req, res) {
-    var x1= req.headers;
+    var x1 = req.headers;
     const bb = busboy({ headers: x1 });
     bb.on('file', (name, file, info) => {
         // C:\Users\ADMIN\AppData\Local\Temp\busboy-upload-...
         // const saveTo = path.join(os.tmpdir(), `busboy-upload-${random()}`);
-        x1.start= x1.start || '0';
-        var startX= parseInt(x1.start);
-        if( !Number.isInteger(startX) || ''+ startX!= ''+ x1.start || (
+        x1.start = x1.start || '0';
+        var startX = parseInt(x1.start);
+        if (!Number.isInteger(startX) || '' + startX != '' + x1.start || (
             !x1.username || !x1.date || !info.filename
-        )){
+        )) {
             file.destroy();
             bb.destroy();
             return;
@@ -199,12 +197,12 @@ app.post('/resume', function (req, res) {
         dir1 += path.sep + x1.date;
         if (!fs.existsSync(dir1)) fs.mkdirSync(dir1);
         dir1 += path.sep + info.filename;
-        var w1= fs.createWriteStream(dir1, {
+        var w1 = fs.createWriteStream(dir1, {
             start: startX,
-            flags: startX==0 ? 'w': 'a'
+            flags: startX == 0 ? 'w' : 'a'
         })
         file.pipe(w1);
-        w1.once('error', function(err){
+        w1.once('error', function (err) {
             console.log('w1:', err);
             file.destroy();
             bb.destroy();
@@ -215,9 +213,9 @@ app.post('/resume', function (req, res) {
     //     console.log(`Field [${name}]: value: %j`, val);
     // });
     bb.on('error', (e) => {
-		console.error('failed upload', e);
-		res.sendStatus(403);
-	})
+        console.error('failed upload', e);
+        res.sendStatus(403);
+    })
     bb.on('finish', () => {
         res.writeHead(200, { 'Connection': 'close' });
         res.end(`That's all folks!`);
@@ -227,6 +225,27 @@ app.post('/resume', function (req, res) {
 
 // upload.single("audio")
 // upload.array("audios", 5)
+
+app.post("/my_voice", multer({
+    storage: multer.diskStorage({
+        destination: dirMyVoice,
+        filename: function (req, file, cb) {
+            cb(null, file.originalname);
+        }
+    }),
+    limits: {
+        fileSize: 1000000 //give no. of bytes
+    },
+    // fileFilter: function(req, file, cb){
+    //    checkFileType(file, cb);
+    // }
+}).single("upload"), (req, res) => {
+    if (req.file) {
+        res.send({msg: "Single file uploaded successfully", file: req.file});
+    } else {
+        res.status(400).send("Please upload a valid file");
+    }
+});
 
 app.post("/single_all", uploadAll.single("upload"), (req, res) => {
     if (req.file) {
@@ -242,6 +261,13 @@ app.post("/multiple_all", uploadAll.array("uploads", 2), (req, res) => {
     } else {
         res.status(400).send("Please upload a valid files");
     }
+});
+
+// catch 404 and forward to error handler
+app.use(function (req, res, next) {
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
 });
 
 app.use((error, req, res, next) => {
@@ -298,6 +324,7 @@ function onListening() {
 }
 
 var http = require('http');
+const { dir } = require('console');
 app.set('port', port);
 app.enable('trust proxy');
 

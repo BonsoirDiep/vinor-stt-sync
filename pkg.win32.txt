@@ -1,0 +1,9 @@
+"pkg": {
+    "outputPath": "dist",
+    "targets": ["node14-win-x86"]
+  }
+
+Need:
+https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/win64/
+msbuild
+python

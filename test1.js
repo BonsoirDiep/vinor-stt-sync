@@ -1,6 +1,6 @@
 
 // var fileNameTest = 'abc.jpg';
-var fileNameTest = __dirname + '\\abc.mp4';
+var fileNameTest = __dirname + '\\abc.wav';
 // var fileNameTest = __dirname+ '\\MapR-Sandbox-For-Hadoop-5.1.0-disk1.vdi';
 
 const request = require('request');
@@ -143,7 +143,7 @@ md5File(fileNameTest, function (err, msg) {
                         // highWaterMark: 1
                     });
                 }
-            } else {
+            } else if (_resp.statusCode === 400) {
                 console.log('_new upload');
                 newUpload(url3, fileNameTest, 'upload', function (err3, msg3) {
                     if (err3) return console.error(err3);
@@ -153,6 +153,8 @@ md5File(fileNameTest, function (err, msg) {
                     // highWaterMark: 1,
                     urlResume
                 });
+            } else {
+                console.log('DO NOT NEED ACTION');
             }
         }
     });
